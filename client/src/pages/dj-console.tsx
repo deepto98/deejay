@@ -175,32 +175,36 @@ export default function DJConsole() {
   // Initialize YouTube Player
   useEffect(() => {
     // Load YouTube IFrame API
-    if (!(window as any).YT) {
+    if (!(window as any).YT || !(window as any).YT.Player) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
       
       (window as any).onYouTubeIframeAPIReady = () => {
+        console.log('YouTube API ready, creating player');
         const ytPlayer = new (window as any).YT.Player('youtube-player', {
-          height: '0',
-          width: '0',
-          videoId: '',
+          height: '360',
+          width: '640',
+          videoId: currentSong?.videoId || 'dQw4w9WgXcQ', // Default video
           playerVars: {
             'autoplay': 0,
-            'controls': 0,
-            'disablekb': 1,
+            'controls': 1,
+            'disablekb': 0,
             'enablejsapi': 1,
             'modestbranding': 1,
             'rel': 0,
-            'showinfo': 0
+            'showinfo': 0,
+            'fs': 0
           },
           events: {
             'onReady': (event: any) => {
+              console.log('YouTube player ready');
               setPlayer(event.target);
               event.target.setVolume(volume);
             },
             'onStateChange': (event: any) => {
+              console.log('Player state changed:', event.data);
               if (event.data === (window as any).YT.PlayerState.ENDED) {
                 handleNext();
               } else if (event.data === (window as any).YT.PlayerState.PLAYING) {
@@ -208,12 +212,53 @@ export default function DJConsole() {
               } else if (event.data === (window as any).YT.PlayerState.PAUSED) {
                 setIsPlaying(false);
               }
+            },
+            'onError': (event: any) => {
+              console.error('YouTube player error:', event.data);
             }
           }
         });
       };
+    } else if ((window as any).YT && (window as any).YT.Player && !player) {
+      // API already loaded, create player directly
+      console.log('YouTube API already loaded, creating player');
+      const ytPlayer = new (window as any).YT.Player('youtube-player', {
+        height: '360',
+        width: '640',
+        videoId: currentSong?.videoId || 'dQw4w9WgXcQ',
+        playerVars: {
+          'autoplay': 0,
+          'controls': 1,
+          'disablekb': 0,
+          'enablejsapi': 1,
+          'modestbranding': 1,
+          'rel': 0,
+          'showinfo': 0,
+          'fs': 0
+        },
+        events: {
+          'onReady': (event: any) => {
+            console.log('YouTube player ready');
+            setPlayer(event.target);
+            event.target.setVolume(volume);
+          },
+          'onStateChange': (event: any) => {
+            console.log('Player state changed:', event.data);
+            if (event.data === (window as any).YT.PlayerState.ENDED) {
+              handleNext();
+            } else if (event.data === (window as any).YT.PlayerState.PLAYING) {
+              setIsPlaying(true);
+            } else if (event.data === (window as any).YT.PlayerState.PAUSED) {
+              setIsPlaying(false);
+            }
+          },
+          'onError': (event: any) => {
+            console.error('YouTube player error:', event.data);
+          }
+        }
+      });
     }
-  }, []);
+  }, [currentSong?.videoId, volume]);
 
   // Initialize Socket.IO connection
   useEffect(() => {
@@ -435,8 +480,10 @@ export default function DJConsole() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Hidden YouTube Player */}
-      <div id="youtube-player" style={{ display: 'none' }}></div>
+      {/* YouTube Player */}
+      <div className="fixed bottom-4 right-4 z-50 bg-black rounded-lg shadow-lg">
+        <div id="youtube-player"></div>
+      </div>
       
       {/* Email Ticker */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 overflow-hidden relative">

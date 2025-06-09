@@ -20,7 +20,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       origin: "*",
       methods: ["GET", "POST"]
     },
-    path: "/socket.io"
+    path: "/socket.io",
+    transports: ['polling'] // Disable WebSocket to avoid connection issues
   });
   
   // Make io available to other routes
