@@ -66,6 +66,7 @@ export default function DJConsole() {
     played: 0
   });
   const [connectedListeners, setConnectedListeners] = useState(0);
+  const [player, setPlayer] = useState<any>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -171,10 +172,53 @@ export default function DJConsole() {
     }
   });
 
+  // Initialize YouTube Player
+  useEffect(() => {
+    // Load YouTube IFrame API
+    if (!(window as any).YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      
+      (window as any).onYouTubeIframeAPIReady = () => {
+        const ytPlayer = new (window as any).YT.Player('youtube-player', {
+          height: '0',
+          width: '0',
+          videoId: '',
+          playerVars: {
+            'autoplay': 0,
+            'controls': 0,
+            'disablekb': 1,
+            'enablejsapi': 1,
+            'modestbranding': 1,
+            'rel': 0,
+            'showinfo': 0
+          },
+          events: {
+            'onReady': (event: any) => {
+              setPlayer(event.target);
+              event.target.setVolume(volume);
+            },
+            'onStateChange': (event: any) => {
+              if (event.data === (window as any).YT.PlayerState.ENDED) {
+                handleNext();
+              } else if (event.data === (window as any).YT.PlayerState.PLAYING) {
+                setIsPlaying(true);
+              } else if (event.data === (window as any).YT.PlayerState.PAUSED) {
+                setIsPlaying(false);
+              }
+            }
+          }
+        });
+      };
+    }
+  }, []);
+
   // Initialize Socket.IO connection
   useEffect(() => {
     const newSocket = io({
-      transports: ['websocket', 'polling'],
+      transports: ['polling'], // Use polling only to avoid WebSocket issues
       timeout: 20000,
       forceNew: true
     });
@@ -272,6 +316,13 @@ export default function DJConsole() {
   }, []);
 
   const handlePlayPause = () => {
+    if (player && currentSong) {
+      if (isPlaying) {
+        player.pauseVideo();
+      } else {
+        player.playVideo();
+      }
+    }
     playPauseMutation.mutate(isPlaying ? 'pause' : 'play');
   };
 
@@ -281,8 +332,41 @@ export default function DJConsole() {
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseInt(e.target.value);
+    if (player) {
+      player.setVolume(newVolume);
+    }
     volumeMutation.mutate(newVolume);
   };
+
+  // Update YouTube player when current song changes
+  useEffect(() => {
+    if (player && currentSong && currentSong.videoId) {
+      player.loadVideoById(currentSong.videoId);
+      if (isPlaying) {
+        player.playVideo();
+      }
+    }
+  }, [currentSong, player]);
+
+  // Update YouTube player volume
+  useEffect(() => {
+    if (player) {
+      player.setVolume(volume);
+    }
+  }, [volume, player]);
+
+  // Track position for progress bar
+  useEffect(() => {
+    if (player && isPlaying) {
+      const interval = setInterval(() => {
+        if (player.getCurrentTime) {
+          const currentTime = Math.floor(player.getCurrentTime());
+          setPosition(currentTime);
+        }
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [player, isPlaying]);
 
   const handleApprove = (songId: string) => {
     approveSongMutation.mutate(songId);
@@ -351,6 +435,9 @@ export default function DJConsole() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Hidden YouTube Player */}
+      <div id="youtube-player" style={{ display: 'none' }}></div>
+      
       {/* Email Ticker */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 overflow-hidden relative">
         <div className="animate-ticker whitespace-nowrap">
