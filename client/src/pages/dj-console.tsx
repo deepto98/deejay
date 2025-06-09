@@ -173,7 +173,11 @@ export default function DJConsole() {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io();
+    const newSocket = io({
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      forceNew: true
+    });
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
@@ -244,14 +248,14 @@ export default function DJConsole() {
 
   // Update data from queries
   useEffect(() => {
-    if (queueData) {
+    if (queueData && 'queue' in queueData && 'stats' in queueData) {
       setQueue(queueData.queue);
       setStats(queueData.stats);
     }
   }, [queueData]);
 
   useEffect(() => {
-    if (playerData) {
+    if (playerData && 'song' in playerData) {
       setCurrentSong(playerData.song);
       setIsPlaying(playerData.isPlaying);
       setPosition(playerData.position);
@@ -343,7 +347,7 @@ export default function DJConsole() {
     }
   };
 
-  const emailAddress = process.env.DJ_INBOUND_ADDRESS || 'request@dj.yourdomain.com';
+  const emailAddress = import.meta.env.VITE_DJ_INBOUND_ADDRESS || 'request@dj.yourdomain.com';
 
   return (
     <div className="min-h-screen bg-slate-50">
