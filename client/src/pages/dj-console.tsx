@@ -599,13 +599,13 @@ export default function DJConsole() {
         </span>
 
         {/* Live indicator */}
-        <div className="absolute top-3 right-4 flex items-center space-x-2">
+        {/* <div className="absolute top-3 right-4 flex items-center space-x-2">
           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
           <span className="text-sm font-medium">
             <Users className="inline w-4 h-4 mr-1" />
             {connectedListeners} listeners connected
           </span>
-        </div>
+        </div> */}
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
