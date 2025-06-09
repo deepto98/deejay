@@ -347,7 +347,7 @@ export default function DJConsole() {
     }
   };
 
-  const emailAddress = import.meta.env.VITE_DJ_INBOUND_ADDRESS || 'request@dj.yourdomain.com';
+  const emailAddress = import.meta.env.VITE_DJ_INBOUND_ADDRESS || 'ea627828ee2287bf174a69cbb9a3396e@inbound.postmarkapp.com';
 
   return (
     <div className="min-h-screen bg-slate-50">
