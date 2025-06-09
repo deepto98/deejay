@@ -67,6 +67,7 @@ export default function DJConsole() {
   });
   const [connectedListeners, setConnectedListeners] = useState(0);
   const [player, setPlayer] = useState<any>(null);
+  const [playerReady, setPlayerReady] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -201,6 +202,7 @@ export default function DJConsole() {
             'onReady': (event: any) => {
               console.log('YouTube player ready');
               setPlayer(event.target);
+              setPlayerReady(true);
               event.target.setVolume(volume);
             },
             'onStateChange': (event: any) => {
@@ -303,9 +305,22 @@ export default function DJConsole() {
 
     // Real-time now playing updates
     newSocket.on('now-playing', (data: PlayerState) => {
+      console.log('Now playing update:', data);
       setCurrentSong(data.song);
       setIsPlaying(data.isPlaying);
       setPosition(data.position);
+      
+      // Load video in YouTube player when song changes
+      if (player && data.song && data.song.videoId) {
+        console.log('Loading video from socket update:', data.song.videoId);
+        player.loadVideoById(data.song.videoId);
+        if (data.isPlaying) {
+          setTimeout(() => {
+            player.playVideo();
+          }, 1000);
+        }
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['/api/player/state'] });
     });
 
@@ -504,6 +519,16 @@ export default function DJConsole() {
       {/* YouTube Player */}
       <div className="fixed bottom-4 right-4 z-50 bg-black rounded-lg shadow-lg">
         <div id="youtube-player"></div>
+        {playerReady && (
+          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+            Player Ready
+          </div>
+        )}
+        {!playerReady && (
+          <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
+            Loading...
+          </div>
+        )}
       </div>
       
       {/* Email Ticker */}
@@ -639,6 +664,28 @@ export default function DJConsole() {
                   />
                   <span className="text-sm text-slate-600 w-8">{volume}</span>
                 </div>
+                
+                {/* Test Player Button (only when no song is playing) */}
+                {playerReady && !currentSong && (
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        console.log('Testing YouTube player with Rick Roll');
+                        player.loadVideoById('dQw4w9WgXcQ');
+                        setTimeout(() => {
+                          player.playVideo();
+                          setIsPlaying(true);
+                        }, 1000);
+                      }}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white border-red-600"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Test YouTube Player
+                    </Button>
+                  </div>
+                )}
                 
                 {/* Queue Stats */}
                 <div className="mt-6 pt-6 border-t border-slate-200">
