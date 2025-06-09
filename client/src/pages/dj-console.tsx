@@ -265,7 +265,8 @@ export default function DJConsole() {
     const newSocket = io({
       transports: ['polling'], // Use polling only to avoid WebSocket issues
       timeout: 20000,
-      forceNew: true
+      forceNew: true,
+      upgrade: false // Prevent upgrading to WebSocket
     });
     setSocket(newSocket);
 
@@ -361,13 +362,28 @@ export default function DJConsole() {
   }, []);
 
   const handlePlayPause = () => {
+    console.log('Play/Pause clicked. Player:', !!player, 'Current song:', !!currentSong, 'Is playing:', isPlaying);
+    
     if (player && currentSong) {
       if (isPlaying) {
+        console.log('Pausing video');
         player.pauseVideo();
+        setIsPlaying(false);
       } else {
+        console.log('Playing video');
         player.playVideo();
+        setIsPlaying(true);
       }
+    } else if (player && !currentSong) {
+      // Test with a default video if no current song
+      console.log('No current song, loading test video');
+      player.loadVideoById('dQw4w9WgXcQ');
+      setTimeout(() => {
+        player.playVideo();
+        setIsPlaying(true);
+      }, 1000);
     }
+    
     playPauseMutation.mutate(isPlaying ? 'pause' : 'play');
   };
 
@@ -386,9 +402,14 @@ export default function DJConsole() {
   // Update YouTube player when current song changes
   useEffect(() => {
     if (player && currentSong && currentSong.videoId) {
+      console.log('Loading video:', currentSong.videoId, currentSong.title);
       player.loadVideoById(currentSong.videoId);
-      if (isPlaying) {
-        player.playVideo();
+      // Auto-play when song changes and is approved
+      if (currentSong.status === 'playing') {
+        setTimeout(() => {
+          player.playVideo();
+          setIsPlaying(true);
+        }, 1000);
       }
     }
   }, [currentSong, player]);

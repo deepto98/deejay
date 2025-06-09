@@ -51,30 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // Set up WebSocket server on separate path for compatibility
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
-  wss.on('connection', function connection(ws) {
-    console.log('WebSocket client connected');
-    
-    ws.on('message', function message(data) {
-      console.log('Received WebSocket message:', data.toString());
-    });
-    
-    // Send initial state
-    if (ws.readyState === WebSocket.OPEN) {
-      queue.list().then(queueData => {
-        ws.send(JSON.stringify({
-          type: 'queue-update',
-          data: { queue: queueData }
-        }));
-      });
-    }
-    
-    ws.on('close', function close() {
-      console.log('WebSocket client disconnected');
-    });
-  });
+  // WebSocket functionality removed to prevent connection issues
 
   // Email webhook routes
   app.use('/api', emailWebhook);
