@@ -1,0 +1,125 @@
+Build Plan – “Email-Based DJ”
+
+1 . Project Initialization
+Create a monorepo (or two Vite bundles) named dj-mail.
+
+Add Node.js backend (Express) + plain HTML/EJS frontend served from the same server.
+
+Install core deps:
+
+Express, dotenv, socket.io
+
+postmark (email), googleapis (YouTube Search)
+
+Optionally redis (redis) – fall back to in-memory queue if REDIS_URL absent.
+
+2 . Environment Configuration (.env)
+ini
+Copy
+Edit
+PORT=4000  
+POSTMARK_SERVER_TOKEN=...           # outbound  
+POSTMARK_INBOUND_SECRET=...         # optional signature validate  
+YOUTUBE_API_KEY=...  
+DJ_INBOUND_ADDRESS=request@dj.yourdomain.com  
+REDIS_URL=redis://...               # blank → use memory
+3 . Core Modules (one file each)
+File	Responsibility	Key Methods
+queue.js	FIFO queue abstraction; auto-select Redis vs memory	push(song), shift(), list(), update(id)
+youtube.js	Search & metadata via YouTube Data v3	search(query) → {videoId,title,url}
+playerState.js	Tracks nowPlaying; pulls next approved song from queue	nextSong(io), getNow()
+emailWebhook.js	Express router for /webhook endpoint	1) signature verify ↔ POSTMARK_INBOUND_SECRET
+2) extract link or search query
+3) queue.push({status:"pending"})
+4) emit queue-update via Socket.IO
+
+4 . Backend Routes
+Route	Method	Purpose
+/	GET	Render DJ console (player + queue table)
+/queue/:id/approve	POST	Mark song approved
+/queue/:id/reject	POST	Mark song rejected
+/player/next	POST	Trigger playerState.nextSong()
+/webhook	POST	Inbound hook from Postmark (uses emailWebhook)
+
+Attach io (Socket.IO) to each request so route handlers can broadcast updates.
+
+5 . Front-End Structure
+HTML template (EJS) loads Tailwind CSS and Socket.IO client.
+
+Top ticker: “Email your request to DJ_INBOUND_ADDRESS”.
+
+Now Playing panel + hidden YouTube iframe (audio-only).
+
+Queue Table listing: title, requester, status, action buttons.
+
+Controls: “Next ▶️” button to skip.
+
+6 . Front-End Behaviour (player.js)
+Connect to Socket.IO.
+
+queue-update → rebuild queue table.
+
+now-playing → load new videoId into iframe, update now-playing text.
+
+Button clicks POST to corresponding backend routes.
+
+On YouTube ended event → POST /player/next automatically.
+
+7 . Inbound Email Parsing Logic
+Lower-case plain text body.
+
+Detect YouTube link via regex youtu.*?(v=|be/)([\\w\\-]+).
+
+If no link, treat full body as search query; call youtube.search().
+
+Build song object:
+
+id (uuid)
+
+videoId, title, url
+
+requester (From)
+
+status: "pending"
+
+submitted timestamp
+
+Insert into queue; emit live update.
+
+8 . Queue Processing & Playback
+Pending songs are displayed with Approve/Reject buttons.
+
+When a song is approved, it enters the playback waiting list.
+
+playerState.nextSong() chooses the earliest approved & not played.
+
+Marks it playing, broadcasts now-playing.
+
+When iframe ends → call nextSong() again.
+
+Rejected or played songs stay in queue table for reference (or auto-purge).
+
+9 . Optional Enhancements
+Auto-reply confirmation email (“Your track is queued!”).
+
+Rate-limit per sender (e.g., max 3 requests / hour).
+
+Admin password or token for approve/reject routes.
+
+Persist queue to Redis list so restarts keep state.
+
+Search fallback: if query fails, send failure email.
+
+Volume / pause / resume controls in UI.
+
+10 . Deployment Checklist
+Create and verify Postmark inbound address; set webhook URL → /webhook.
+
+Provision YouTube API Key (Data v3).
+
+Configure domain’s SPF/DKIM for Postmark.
+
+Deploy Node server on Railway or Fly.io (single command).
+
+Point browser to site, queue some songs via email, demo live playback + approvals.
+
