@@ -71,13 +71,13 @@ export default function DJConsole() {
   const queryClient = useQueryClient();
 
   // Fetch initial queue data
-  const { data: queueData } = useQuery({
+  const { data: queueData } = useQuery<{queue: Song[], stats: QueueStats}>({
     queryKey: ['/api/queue'],
     refetchInterval: 30000, // Refresh every 30 seconds as fallback
   });
 
   // Fetch current player state
-  const { data: playerData } = useQuery({
+  const { data: playerData } = useQuery<PlayerState>({
     queryKey: ['/api/player/state'],
     refetchInterval: 5000, // Refresh every 5 seconds as fallback
   });
@@ -248,14 +248,14 @@ export default function DJConsole() {
 
   // Update data from queries
   useEffect(() => {
-    if (queueData && 'queue' in queueData && 'stats' in queueData) {
+    if (queueData) {
       setQueue(queueData.queue);
       setStats(queueData.stats);
     }
   }, [queueData]);
 
   useEffect(() => {
-    if (playerData && 'song' in playerData) {
+    if (playerData) {
       setCurrentSong(playerData.song);
       setIsPlaying(playerData.isPlaying);
       setPosition(playerData.position);
