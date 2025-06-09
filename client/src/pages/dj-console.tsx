@@ -874,24 +874,10 @@ export default function DJConsole() {
                                 </div>
                               </div>
                             </td>
-                            <td className="p-4">
-                              <div className="text-sm font-medium text-slate-900 truncate max-w-xs">
-                                {song.requester}
-                              </div>
-                              {song.searchQuery && (
-                                <div className="text-xs text-slate-500">
-                                  Search: "{song.searchQuery}"
-                                </div>
-                              )}
-                            </td>
-                            <td className="p-4 text-center">
-                              <span className="text-sm font-mono text-slate-700">
-                                {song.duration || "Unknown"}
-                              </span>
-                            </td>
                             <td className="p-4 text-center">
                               {getStatusBadge(song.status)}
                             </td>
+
                             <td className="p-4 text-center">
                               <div className="flex justify-center space-x-2">
                                 {song.status === "pending" && (
@@ -951,6 +937,21 @@ export default function DJConsole() {
                                   </Button>
                                 )}
                               </div>
+                            </td>
+                            <td className="p-4 text-center">
+                              <span className="text-sm font-mono text-slate-700">
+                                {song.duration || "Unknown"}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <div className="text-sm font-medium text-slate-900 truncate max-w-xs">
+                                {song.requester}
+                              </div>
+                              {song.searchQuery && (
+                                <div className="text-xs text-slate-500">
+                                  Search: "{song.searchQuery}"
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))
